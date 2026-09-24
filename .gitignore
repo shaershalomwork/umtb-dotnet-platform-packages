@@ -1,0 +1,19 @@
+# .NET build output
+**/bin/
+**/obj/
+
+# Test and coverage output
+**/TestResults/
+coverage/
+coverage.*
+
+# NuGet packages
+*.nupkg
+*.snupkg
+
+# Local IDE settings
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
