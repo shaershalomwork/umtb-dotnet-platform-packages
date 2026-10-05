@@ -1,0 +1,14 @@
+.git
+.tools
+.aws
+.codex
+.agents
+.vs
+.env
+.env.*
+**/bin
+**/obj
+**/__pycache__
+**/TestResults
+artifacts/*
+!artifacts/packages

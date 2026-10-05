@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../../src/Umtb.Platform.Security/Umtb.Platform.Security.csproj" Condition="'$(UsePackedPackage)' != 'true'" />
+    <PackageReference Include="Umtb.Platform.Security" Condition="'$(UsePackedPackage)' == 'true'" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
+    <!-- Compile the actual sample routes/controllers so documentation examples cannot drift. -->
+    <Compile Include="../../samples/Umtb.Platform.Security.Sample/DemoApplication.cs" Link="Sample/DemoApplication.cs" />
+    <Compile Include="../../samples/Umtb.Platform.Security.Sample/SampleApiDocumentation.cs" Link="Sample/SampleApiDocumentation.cs" />
+    <Compile Include="../../docs/examples/QuickStart.cs" Link="Documentation/QuickStart.cs" />
+    <Using Include="Microsoft.AspNetCore.Builder" />
+    <Using Include="Microsoft.AspNetCore.Http" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

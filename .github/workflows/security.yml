@@ -1,0 +1,116 @@
+name: Security package verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: Umtb.Platform.Security
+
+env:
+  NUGET_PACKAGES: ${{ github.workspace }}/Umtb.Platform.Security/artifacts/nuget-cache-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: dotnet restore Umtb.Platform.Security.slnx
+      - run: dotnet build Umtb.Platform.Security.slnx -c Release --no-restore
+      - run: python scripts/verify-docs.py
+      - run: mkdir -p artifacts
+      - run: dotnet list src/Umtb.Platform.Security/Umtb.Platform.Security.csproj package --vulnerable --include-transitive --format json > artifacts/vulnerability-report.json
+      - run: python -c "import json; r=json.load(open('artifacts/vulnerability-report.json')); assert not any(f.get('topLevelPackages') or f.get('transitivePackages') for p in r['projects'] for f in p.get('frameworks', [])), 'Vulnerable dependencies found'"
+      - run: dotnet pack src/Umtb.Platform.Security/Umtb.Platform.Security.csproj -c Release --no-build -o artifacts/packages
+      - run: python scripts/verify-package.py artifacts/packages/Umtb.Platform.Security.0.1.0-preview.1.nupkg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-package
+          path: Umtb.Platform.Security/artifacts/packages/*
+
+  packed-consumer:
+    needs: pack
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        framework: [net8.0, net9.0, net10.0]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/download-artifact@v4
+        with:
+          name: security-package
+          path: Umtb.Platform.Security/artifacts/packages
+      - name: Restore from packed artifact
+        run: |
+          dotnet restore tests/Umtb.Platform.Security.Tests -p:UsePackedPackage=true --configfile NuGet.Packed.config
+          dotnet restore samples/Umtb.Platform.Security.Sample -p:UsePackedPackage=true --configfile NuGet.Packed.config
+      - run: python scripts/verify-package.py artifacts/packages/Umtb.Platform.Security.0.1.0-preview.1.nupkg --assets tests/Umtb.Platform.Security.Tests/obj/project.assets.json
+      - run: python scripts/verify-package.py artifacts/packages/Umtb.Platform.Security.0.1.0-preview.1.nupkg --assets samples/Umtb.Platform.Security.Sample/obj/project.assets.json
+      - run: dotnet test tests/Umtb.Platform.Security.Tests -c Release -f ${{ matrix.framework }} -p:UsePackedPackage=true --no-restore --logger "trx;LogFileName=security.trx"
+      - run: dotnet build samples/Umtb.Platform.Security.Sample -c Release -f ${{ matrix.framework }} -p:UsePackedPackage=true --no-restore
+      - run: python scripts/sample-smoke.py --framework ${{ matrix.framework }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.os }}-${{ matrix.framework }}
+          path: |
+            Umtb.Platform.Security/tests/**/TestResults/*.trx
+            Umtb.Platform.Security/artifacts/*.log
+
+  keycloak:
+    needs: pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            9.0.x
+            10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/download-artifact@v4
+        with:
+          name: security-package
+          path: Umtb.Platform.Security/artifacts/packages
+      - run: dotnet restore samples/Umtb.Platform.Security.Sample -p:UsePackedPackage=true --configfile NuGet.Packed.config
+      - run: dotnet build samples/Umtb.Platform.Security.Sample -c Release -p:UsePackedPackage=true --no-restore
+      - run: docker compose -f keycloak/compose.yaml up -d
+      - run: python scripts/keycloak-smoke.py --framework net8.0
+      - run: python scripts/keycloak-smoke.py --framework net9.0
+      - run: python scripts/keycloak-smoke.py --framework net10.0
+      - name: Collect fixture logs and stop
+        if: always()
+        run: |
+          mkdir -p artifacts
+          docker compose -f keycloak/compose.yaml logs > artifacts/keycloak.log
+          docker compose -f keycloak/compose.yaml down
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: keycloak-smoke-logs
+          path: Umtb.Platform.Security/artifacts/*.log

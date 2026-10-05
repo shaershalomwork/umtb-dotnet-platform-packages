@@ -1,0 +1,445 @@
+{
+  "realm": "platform",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "accessTokenLifespan": 300,
+  "defaultSignatureAlgorithm": "RS256",
+  "defaultGroups": [],
+  "roles": {
+    "client": {
+      "orders-api": [
+        {
+          "name": "read"
+        },
+        {
+          "name": "write"
+        },
+        {
+          "name": "admin"
+        }
+      ]
+    }
+  },
+  "groups": [
+    {
+      "name": "applications",
+      "subGroups": [
+        {
+          "name": "orders",
+          "subGroups": [
+            {
+              "name": "users"
+            },
+            {
+              "name": "admins"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "orders-api",
+      "name": "Orders API resource",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "orders-web",
+      "name": "Orders browser login",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [
+        "http://127.0.0.1:18081/callback",
+        "http://localhost:5000/",
+        "http://127.0.0.1:5000/"
+      ],
+      "webOrigins": [
+        "http://127.0.0.1:18081",
+        "http://localhost:5000",
+        "http://127.0.0.1:5000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email",
+        "orders-api-access"
+      ],
+      "optionalClientScopes": []
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "basic",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "subject",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "config": {
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "full name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-full-name-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        },
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "email",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "email",
+            "claim.name": "email",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        },
+        {
+          "name": "email verified",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "user.attribute": "emailVerified",
+            "claim.name": "email_verified",
+            "jsonType.label": "boolean",
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "orders-api-access",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "orders audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "orders-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "orders client roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-client-role-mapper",
+          "config": {
+            "usermodel.clientRoleMapping.clientId": "orders-api",
+            "claim.name": "resource_access.orders-api.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "full application groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "config": {
+            "claim.name": "groups",
+            "full.path": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "managed national ID",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "nationalId",
+            "claim.name": "national_id",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "department",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "department",
+            "claim.name": "department",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "clientScopeMappings": {
+    "orders-api": [
+      {
+        "client": "orders-web",
+        "roles": [
+          "read",
+          "write",
+          "admin"
+        ]
+      }
+    ]
+  },
+  "users": [
+    {
+      "id": "alice",
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "alice",
+      "lastName": "Fixture",
+      "email": "alice@example.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "fixture-password",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "nationalId": [
+          "001234567"
+        ],
+        "department": [
+          "operations"
+        ]
+      },
+      "groups": [
+        "/applications/orders/users"
+      ],
+      "clientRoles": {
+        "orders-api": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "id": "reader",
+      "username": "reader",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "reader",
+      "lastName": "Fixture",
+      "email": "reader@example.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "fixture-password",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "nationalId": [
+          "001234567"
+        ],
+        "department": [
+          "operations"
+        ]
+      },
+      "groups": [
+        "/applications/orders/users"
+      ],
+      "clientRoles": {
+        "orders-api": [
+          "read"
+        ]
+      }
+    },
+    {
+      "id": "writer",
+      "username": "writer",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "writer",
+      "lastName": "Fixture",
+      "email": "writer@example.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "fixture-password",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "nationalId": [
+          "001234567"
+        ],
+        "department": [
+          "operations"
+        ]
+      },
+      "groups": [
+        "/applications/orders/users"
+      ],
+      "clientRoles": {
+        "orders-api": [
+          "write"
+        ]
+      }
+    },
+    {
+      "id": "group-only",
+      "username": "group-only",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "group-only",
+      "lastName": "Fixture",
+      "email": "group-only@example.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "fixture-password",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "nationalId": [
+          "001234567"
+        ],
+        "department": [
+          "operations"
+        ]
+      },
+      "groups": [
+        "/applications/orders/users"
+      ],
+      "clientRoles": {}
+    },
+    {
+      "id": "role-only",
+      "username": "role-only",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "role-only",
+      "lastName": "Fixture",
+      "email": "role-only@example.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "fixture-password",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "nationalId": [
+          "001234567"
+        ],
+        "department": [
+          "operations"
+        ]
+      },
+      "groups": [],
+      "clientRoles": {
+        "orders-api": [
+          "admin"
+        ]
+      }
+    },
+    {
+      "id": "unassigned",
+      "username": "unassigned",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "unassigned",
+      "lastName": "Fixture",
+      "email": "unassigned@example.test",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "fixture-password",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "nationalId": [
+          "001234567"
+        ],
+        "department": [
+          "operations"
+        ]
+      },
+      "groups": [],
+      "clientRoles": {}
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"email\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"firstName\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"lastName\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"nationalId\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"department\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"multivalued\":false}]}"
+          ]
+        }
+      }
+    ]
+  }
+}

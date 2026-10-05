@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Umtb.Platform.Security.Sample/Umtb.Platform.Security.Sample.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Umtb.Platform.Security.Tests/Umtb.Platform.Security.Tests.csproj" />
+  </Folder>
+  <Project Path="src/Umtb.Platform.Security/Umtb.Platform.Security.csproj" />
+</Solution>
