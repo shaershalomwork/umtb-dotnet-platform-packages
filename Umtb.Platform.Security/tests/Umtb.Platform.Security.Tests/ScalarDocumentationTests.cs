@@ -1,15 +1,18 @@
 using System.Net;
 using System.Text.Json;
-using Microsoft.AspNetCore.Routing;
 
 namespace Umtb.Platform.Security.Tests;
 
 public sealed class ScalarDocumentationTests
 {
-    [Fact]
-    public async Task Development_documentation_passes_audit_and_exposes_Keycloak_code_flow()
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Test")]
+    [InlineData("Staging")]
+    [InlineData("Production")]
+    public async Task Documentation_passes_audit_and_exposes_Keycloak_code_flow_in_every_environment(string environment)
     {
-        await using var host = new TestHost(environment: "Development", documentation: true,
+        await using var host = new TestHost(environment: environment, documentation: true,
             settings: new() { ["Scalar:ClientId"] = "test-login-client" });
         await host.StartAsync();
 
@@ -31,6 +34,14 @@ public sealed class ScalarDocumentationTests
         using var response = await host.SendAsync(null, "/openapi/v1.json");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var description = document.RootElement.GetProperty("info").GetProperty("description").GetString()!;
+        if (environment == "Development") Assert.Contains("fixture-password", description);
+        else
+        {
+            Assert.DoesNotContain("fixture-password", description);
+            Assert.DoesNotContain("reader", description);
+            Assert.DoesNotContain("alice", description);
+        }
         var scheme = document.RootElement.GetProperty("components").GetProperty("securitySchemes").GetProperty("Keycloak");
         Assert.Equal("oauth2", scheme.GetProperty("type").GetString());
         var flow = scheme.GetProperty("flows").GetProperty("authorizationCode");
@@ -43,6 +54,12 @@ public sealed class ScalarDocumentationTests
         {
             foreach (var operation in path.Value.EnumerateObject())
             {
+                var expectedTag = path.Name == "/controller/orders"
+                    ? "Controller examples"
+                    : "Minimal API examples";
+                Assert.Equal(expectedTag, Assert.Single(operation.Value.GetProperty("tags").EnumerateArray()).GetString());
+                Assert.False(string.IsNullOrWhiteSpace(operation.Value.GetProperty("summary").GetString()));
+                Assert.False(string.IsNullOrWhiteSpace(operation.Value.GetProperty("description").GetString()));
                 if (path.Name == "/health")
                 {
                     Assert.False(operation.Value.TryGetProperty("security", out _));
@@ -64,15 +81,17 @@ public sealed class ScalarDocumentationTests
 
     [Theory]
     [InlineData("Production")]
-    [InlineData("Staging")]
-    public async Task Documentation_routes_are_absent_outside_Development(string environment)
+    [InlineData("Test")]
+    public async Task Scalar_uses_configured_public_redirect_uri_behind_a_proxy(string environment)
     {
-        await using var host = new TestHost(environment: environment, documentation: true);
+        const string redirectUri = "https://api.example.test/sample/";
+        await using var host = new TestHost(environment: environment, documentation: true,
+            settings: new() { ["Scalar:RedirectUri"] = redirectUri });
         await host.StartAsync();
-        var routes = ((IEndpointRouteBuilder)host.App).DataSources.SelectMany(source => source.Endpoints).OfType<RouteEndpoint>();
-        Assert.DoesNotContain(routes, route => route.RoutePattern.RawText!.Contains("documentName", StringComparison.Ordinal));
-        Assert.DoesNotContain(routes, route => route.RoutePattern.RawText!.Contains("scalar", StringComparison.Ordinal));
-        using var response = await host.SendAsync(host.Token("admin"), "/openapi/v1.json");
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        using var response = await host.SendAsync(null, "/");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.Contains(redirectUri, html);
+        Assert.DoesNotContain("http://localhost/", html);
     }
 }

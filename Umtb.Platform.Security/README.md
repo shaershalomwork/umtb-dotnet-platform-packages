@@ -176,7 +176,7 @@ python scripts/verify-package.py artifacts/packages/Umtb.Platform.Security.0.1.0
 
 The package solution includes the library, tests, and sample. Only the library is packable; the symbol package accompanies the same primary NuGet package. `Directory.Build.props` and `Directory.Packages.props` apply only inside this package. There are no dependencies on other repository packages. Its current dependencies are published Microsoft packages and the ASP.NET Core shared framework. A future dependency on a sibling package must use a published NuGet version and document its purpose, necessity, and supported versions here.
 
-- [Complete sample](samples/Umtb.Platform.Security.Sample/Program.cs): Minimal APIs, controllers, route groups, custom policies, and resource authorization. Includes [Scalar with Keycloak login](samples/Umtb.Platform.Security.Sample/README.md) at `http://localhost:5000/` in Development; run `dotnet run --project samples/Umtb.Platform.Security.Sample --framework net10.0`.
+- [Complete sample](samples/Umtb.Platform.Security.Sample/Program.cs): Minimal APIs, controllers, route groups, custom policies, and resource authorization. Includes public [Scalar with Keycloak login](samples/Umtb.Platform.Security.Sample/README.md) at `/` in every environment, with protected API endpoints. For local Development at `http://localhost:5000/`, run `dotnet run --project samples/Umtb.Platform.Security.Sample --framework net10.0`.
 - [Keycloak setup and reproducible fixture](keycloak/README.md).
 - [Compatibility and migration notes](docs/compatibility.md), [changelog](CHANGELOG.md), and [release verification](docs/releasing.md).
 - [Verification records and outstanding release gates](docs/verification.md).

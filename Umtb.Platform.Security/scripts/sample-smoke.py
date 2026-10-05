@@ -66,25 +66,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--framework", default="net10.0")
     parser.add_argument("--dotnet", default="dotnet")
-    parser.add_argument("--environment", choices=["Production", "Development"], default="Production")
+    parser.add_argument("--environment", choices=["Production", "Development", "Test", "Staging"], default="Production")
     args = parser.parse_args()
     proc, output, base = start_sample(args.framework, args.dotnet, environment=args.environment)
     try:
         wait_ready(base + "/health", proc)
         assert json.loads(request(base + "/health")[1])["status"] == "ok"
-        if args.environment == "Development":
-            for path in ["/", "/scalar.js", "/scalar.aspnetcore.js", "/openapi/v1.json"]:
-                status, body = request(base + path)
-                assert status == 200 and body, path
-            document = json.loads(request(base + "/openapi/v1.json")[1])
-            assert "/me" in document["paths"]
-            assert document["components"]["securitySchemes"]["Keycloak"]["type"] == "oauth2"
-        else:
-            # Deny fallback may return 401 for unmapped routes. Check that none are served.
-            for path in ["/", "/scalar.js", "/openapi/v1.json"]:
-                assert request(base + path)[0] in (401, 404), path
+        for path in ["/", "/scalar.js", "/scalar.aspnetcore.js", "/openapi/v1.json"]:
+            status, body = request(base + path)
+            assert status == 200 and body, path
+        document = json.loads(request(base + "/openapi/v1.json")[1])
+        assert "/me" in document["paths"]
+        assert document["components"]["securitySchemes"]["Keycloak"]["type"] == "oauth2"
+        if args.environment != "Development":
+            assert "fixture-password" not in document["info"]["description"]
         for path in ["/me", "/controller/orders", "/reports/daily"]:
             assert request(base + path)[0] == 401, path
-        print("Sample startup, Scalar environment boundary, health, and bearer challenges passed on " + args.framework + " (" + args.environment + ")")
+        print("Sample startup, public Scalar documentation, health, and bearer challenges passed on " + args.framework + " (" + args.environment + ")")
     finally:
         stop_sample(proc, output)
